@@ -2,9 +2,11 @@ const FAMILY = { adults: 2, kids: 2 };
 
 const RULES = [
   "Comidas y cenas hiper proteicas para organizacion mensual.",
-  "Lunes a viernes: los ninos solo cenan en casa.",
+  "La cena nunca usa ni cerdo ni ternera (solo pollo o atun).",
+  "Cada semana puede configurarse con 5 dias laborables y 2 festivos.",
+  "Laborables: los ninos solo cenan en casa.",
   "Hogar de 2 adultos + 2 ninos.",
-  "Proteinas base: pollo, ternera, cerdo y atun enlatado.",
+  "Proteinas base de la app: pollo, ternera, cerdo y atun enlatado.",
   "No mezclar tipos de proteina en una misma receta.",
   "No mezclar carne y pescado.",
   "Cada receta muestra cantidades de preparacion y servicio.",
@@ -12,6 +14,7 @@ const RULES = [
 ];
 
 const PROTEIN_ROTATION = ["chicken", "beef", "pork", "tuna"];
+const DINNER_PROTEIN_ROTATION = ["chicken", "tuna"];
 
 const PROTEIN_LABEL = {
   chicken: "Pollo",
@@ -19,6 +22,8 @@ const PROTEIN_LABEL = {
   pork: "Cerdo",
   tuna: "Atun enlatado"
 };
+
+const WEEKDAY_SHORT = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
 
 const RECIPES = [
   {
@@ -68,7 +73,7 @@ const RECIPES = [
       "Nino: mismo plato con porcion reducida y piezas pequenas."
     ],
     steps: (q) => [
-      `Calienta el horno a 210 C. Prepara una bandeja con papel de horno.`,
+      "Calienta el horno a 210 C. Prepara una bandeja con papel de horno.",
       `Coloca ${q.protein} de pollo en tiras. Mezcla con sal, ajo en polvo, oregano y aceite. Reparte en una sola capa.`,
       `Pela y corta ${q.veg} de zanahoria en bastones finos y ponla junto al pollo.`,
       "Hornea 18-20 minutos. A mitad de tiempo, remueve para que se cocine uniforme.",
@@ -98,7 +103,7 @@ const RECIPES = [
     steps: (q) => [
       `Inicia el arroz: enjuaga ${q.carb} y cocina con agua y una pizca de sal.`,
       `Seca ${q.protein} de ternera con papel de cocina. Esto evita que hierva en vez de dorarse.`,
-      `Calienta una sarten grande con aceite. Saltea la ternera en tandas para no amontonar.`,
+      "Calienta una sarten grande con aceite. Saltea la ternera en tandas para no amontonar.",
       "Cuando la ternera este sellada por fuera, retira temporalmente a un plato.",
       `En la misma sarten, cocina ${q.veg} de pimiento en tiras 4 minutos hasta que se ablande.`,
       "Devuelve la ternera a la sarten, sazona y remueve 2 minutos para integrar sabor.",
@@ -180,7 +185,7 @@ const RECIPES = [
       "Nino: cerdo en trozos pequenos, boniato blando y verduras bien cocinadas."
     ],
     steps: (q) => [
-      `Precalienta horno a 210 C y corta ${q.carb} de boniato en cubos medianos.`,
+      "Precalienta horno a 210 C y corta el boniato en cubos medianos.",
       "Mezcla boniato con la mitad del aceite y una pizca de sal. Hornea 22 minutos.",
       `Calienta sarten grande y saltea ${q.protein} de cerdo en tandas. Retira cuando este dorado.`,
       `En la misma sarten cocina ${q.veg} de cebolla y calabacin hasta que este muy tierno.`,
@@ -252,7 +257,10 @@ const refs = {
   generateBtn: document.querySelector("#generateBtn"),
   installBtn: document.querySelector("#installBtn"),
   rulePills: document.querySelector("#rulePills"),
+  weekConfig: document.querySelector("#weekConfig"),
+  weekConfigWarning: document.querySelector("#weekConfigWarning"),
   calendar: document.querySelector("#calendar"),
+  shoppingWeeks: document.querySelector("#shoppingWeeks"),
   lunchCount: document.querySelector("#lunchCount"),
   dinnerCount: document.querySelector("#dinnerCount"),
   adultServings: document.querySelector("#adultServings"),
@@ -269,6 +277,8 @@ const refs = {
 
 let deferredPrompt;
 let activePlan = [];
+let activeMonthContext = null;
+let weekConfigState = {};
 
 function formatMonthISO(date) {
   const y = date.getFullYear();
@@ -276,9 +286,9 @@ function formatMonthISO(date) {
   return `${y}-${m}`;
 }
 
-function isWeekday(date) {
-  const day = date.getDay();
-  return day >= 1 && day <= 5;
+function formatQty(value) {
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? `${rounded}` : `${rounded.toFixed(1)}`;
 }
 
 function toLongDate(date) {
@@ -289,13 +299,142 @@ function toLongDate(date) {
   }).format(date);
 }
 
-function formatQty(value) {
-  const rounded = Math.round(value * 10) / 10;
-  return Number.isInteger(rounded) ? `${rounded}` : `${rounded.toFixed(1)}`;
+function toShortDate(date) {
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "short"
+  }).format(date);
+}
+
+function dateKey(date) {
+  const y = date.getFullYear();
+  const m = `${date.getMonth() + 1}`.padStart(2, "0");
+  const d = `${date.getDate()}`.padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function isDefaultWorkday(date) {
+  const day = date.getDay();
+  return day >= 1 && day <= 5;
+}
+
+function weekStartKey(date) {
+  const copy = new Date(date);
+  const day = copy.getDay();
+  const offsetToMonday = day === 0 ? -6 : 1 - day;
+  copy.setDate(copy.getDate() + offsetToMonday);
+  return dateKey(copy);
+}
+
+function getMonthContext(year, monthIndex) {
+  const totalDays = new Date(year, monthIndex + 1, 0).getDate();
+  const days = [];
+
+  for (let day = 1; day <= totalDays; day += 1) {
+    const date = new Date(year, monthIndex, day);
+    days.push({
+      date,
+      dateKey: dateKey(date),
+      weekKey: weekStartKey(date)
+    });
+  }
+
+  const weekMap = new Map();
+  days.forEach((dayInfo) => {
+    if (!weekMap.has(dayInfo.weekKey)) weekMap.set(dayInfo.weekKey, []);
+    weekMap.get(dayInfo.weekKey).push(dayInfo);
+  });
+
+  const weeks = Array.from(weekMap.entries())
+    .map(([key, weekDays], idx) => ({
+      key,
+      index: idx + 1,
+      days: weekDays.sort((a, b) => a.date - b.date)
+    }))
+    .sort((a, b) => a.days[0].date - b.days[0].date);
+
+  return { year, monthIndex, days, weeks };
+}
+
+function buildDefaultWeekConfig(monthContext) {
+  const config = {};
+  monthContext.weeks.forEach((week) => {
+    config[week.key] = {};
+    week.days.forEach((dayInfo) => {
+      config[week.key][dayInfo.dateKey] = isDefaultWorkday(dayInfo.date);
+    });
+  });
+  return config;
+}
+
+function countWeekTypes(week) {
+  const state = weekConfigState[week.key] || {};
+  let workdays = 0;
+  let festive = 0;
+
+  week.days.forEach((dayInfo) => {
+    if (state[dayInfo.dateKey]) workdays += 1;
+    else festive += 1;
+  });
+
+  return { workdays, festive };
+}
+
+function renderWeekConfig() {
+  refs.weekConfig.innerHTML = "";
+
+  activeMonthContext.weeks.forEach((week) => {
+    const card = document.createElement("article");
+    card.className = "week-card";
+
+    const title = document.createElement("h3");
+    title.textContent = `Semana ${week.index}: ${toShortDate(week.days[0].date)} - ${toShortDate(week.days[week.days.length - 1].date)}`;
+
+    const counts = countWeekTypes(week);
+    const status = document.createElement("p");
+    status.className = "week-status";
+    status.textContent = `Laborables: ${counts.workdays} · Festivos: ${counts.festive}`;
+
+    const toggleWrap = document.createElement("div");
+    toggleWrap.className = "day-toggle-wrap";
+
+    week.days.forEach((dayInfo) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = weekConfigState[week.key][dayInfo.dateKey] ? "day-chip labor" : "day-chip fest";
+      btn.dataset.weekKey = week.key;
+      btn.dataset.dateKey = dayInfo.dateKey;
+      btn.textContent = `${WEEKDAY_SHORT[dayInfo.date.getDay()]} ${dayInfo.date.getDate()} · ${
+        weekConfigState[week.key][dayInfo.dateKey] ? "Labor" : "Fest"
+      }`;
+      toggleWrap.appendChild(btn);
+    });
+
+    card.append(title, status, toggleWrap);
+    refs.weekConfig.appendChild(card);
+  });
+}
+
+function validateWeekSelection() {
+  const invalidWeeks = activeMonthContext.weeks.filter((week) => {
+    if (week.days.length !== 7) return false;
+    const counts = countWeekTypes(week);
+    return !(counts.workdays === 5 && counts.festive === 2);
+  });
+
+  if (invalidWeeks.length > 0) {
+    refs.weekConfigWarning.hidden = false;
+    refs.weekConfigWarning.textContent = "Hay semanas completas que no tienen 5 laborables y 2 festivos. Ajustalas para generar el plan.";
+    return false;
+  }
+
+  refs.weekConfigWarning.hidden = true;
+  refs.weekConfigWarning.textContent = "";
+  return true;
 }
 
 function pickRecipe(recipesByProtein, protein, mealTag, state) {
-  const candidates = recipesByProtein[protein].filter((r) => r.mealTags.includes(mealTag));
+  const candidates = recipesByProtein[protein].filter((recipe) => recipe.mealTags.includes(mealTag));
   const key = `${protein}-${mealTag}`;
   const idx = state[key] || 0;
   const recipe = candidates[idx % candidates.length];
@@ -303,27 +442,29 @@ function pickRecipe(recipesByProtein, protein, mealTag, state) {
   return recipe;
 }
 
-function buildPlan(year, monthIndex) {
+function getWorkdayForDate(dayInfo) {
+  return Boolean(weekConfigState[dayInfo.weekKey]?.[dayInfo.dateKey]);
+}
+
+function buildPlan(monthContext) {
   const recipesByProtein = PROTEIN_ROTATION.reduce((acc, protein) => {
     acc[protein] = RECIPES.filter((r) => r.protein === protein);
     return acc;
   }, {});
 
   const state = {};
-  const totalDays = new Date(year, monthIndex + 1, 0).getDate();
   const plan = [];
 
-  for (let day = 1; day <= totalDays; day += 1) {
-    const date = new Date(year, monthIndex, day);
-    const dayIndex = day - 1;
+  monthContext.days.forEach((dayInfo, dayIndex) => {
     const lunchProtein = PROTEIN_ROTATION[dayIndex % PROTEIN_ROTATION.length];
-    let dinnerProtein = PROTEIN_ROTATION[(dayIndex + 1) % PROTEIN_ROTATION.length];
+    let dinnerProtein = DINNER_PROTEIN_ROTATION[dayIndex % DINNER_PROTEIN_ROTATION.length];
 
     if (dinnerProtein === lunchProtein) {
-      dinnerProtein = PROTEIN_ROTATION[(dayIndex + 2) % PROTEIN_ROTATION.length];
+      dinnerProtein = DINNER_PROTEIN_ROTATION[(dayIndex + 1) % DINNER_PROTEIN_ROTATION.length];
     }
 
-    const lunchAudience = isWeekday(date)
+    const workday = getWorkdayForDate(dayInfo);
+    const lunchAudience = workday
       ? { adults: FAMILY.adults, kids: 0 }
       : { adults: FAMILY.adults, kids: FAMILY.kids };
 
@@ -345,8 +486,15 @@ function buildPlan(year, monthIndex) {
       recipe: pickRecipe(recipesByProtein, dinnerProtein, "dinner", state)
     };
 
-    plan.push({ date, lunch, dinner });
-  }
+    plan.push({
+      date: dayInfo.date,
+      dateKey: dayInfo.dateKey,
+      weekKey: dayInfo.weekKey,
+      workday,
+      lunch,
+      dinner
+    });
+  });
 
   return plan;
 }
@@ -372,14 +520,24 @@ function makeQuantities(recipe, audience) {
   return { prep, service, q };
 }
 
+function getMealIngredients(meal) {
+  return Object.values(meal.recipe.components).map((component) => {
+    const total = component.adult * meal.audience.adults + component.kid * meal.audience.kids;
+    return {
+      label: component.label,
+      unit: component.unit,
+      total
+    };
+  });
+}
+
 function updateStats(plan) {
-  const lunchMeals = plan.length;
-  const dinnerMeals = plan.length;
+  refs.lunchCount.textContent = String(plan.length);
+  refs.dinnerCount.textContent = String(plan.length);
+
   const adultServings = plan.reduce((acc, day) => acc + day.lunch.audience.adults + day.dinner.audience.adults, 0);
   const kidServings = plan.reduce((acc, day) => acc + day.lunch.audience.kids + day.dinner.audience.kids, 0);
 
-  refs.lunchCount.textContent = String(lunchMeals);
-  refs.dinnerCount.textContent = String(dinnerMeals);
   refs.adultServings.textContent = String(adultServings);
   refs.kidServings.textContent = String(kidServings);
 }
@@ -411,7 +569,11 @@ function renderPlan(plan) {
     const dayText = toLongDate(dayInfo.date);
     dayTitle.textContent = dayText.charAt(0).toUpperCase() + dayText.slice(1);
 
-    dayCard.appendChild(dayTitle);
+    const dayType = document.createElement("p");
+    dayType.className = "day-type";
+    dayType.textContent = dayInfo.workday ? "Dia laborable" : "Dia festivo";
+
+    dayCard.append(dayTitle, dayType);
 
     [dayInfo.lunch, dayInfo.dinner].forEach((meal) => {
       const slot = document.createElement("div");
@@ -450,20 +612,98 @@ function renderPlan(plan) {
   updateStats(plan);
 }
 
+function renderWeeklyShopping(plan) {
+  refs.shoppingWeeks.innerHTML = "";
+
+  const weekAgg = new Map();
+
+  activeMonthContext.weeks.forEach((week) => {
+    weekAgg.set(week.key, {
+      week,
+      ingredients: new Map()
+    });
+  });
+
+  plan.forEach((day) => {
+    const slot = weekAgg.get(day.weekKey);
+    [day.lunch, day.dinner].forEach((meal) => {
+      getMealIngredients(meal).forEach((item) => {
+        const key = `${item.label}__${item.unit}`;
+        const current = slot.ingredients.get(key) || {
+          label: item.label,
+          unit: item.unit,
+          total: 0
+        };
+        current.total += item.total;
+        slot.ingredients.set(key, current);
+      });
+    });
+  });
+
+  activeMonthContext.weeks.forEach((week) => {
+    const slot = weekAgg.get(week.key);
+    const card = document.createElement("article");
+    card.className = "shopping-card";
+
+    const title = document.createElement("h3");
+    title.textContent = `Semana ${week.index}: ${toShortDate(week.days[0].date)} - ${toShortDate(week.days[week.days.length - 1].date)}`;
+
+    const list = document.createElement("ul");
+    const items = Array.from(slot.ingredients.values()).sort((a, b) => a.label.localeCompare(b.label, "es"));
+
+    items.forEach((item) => {
+      const li = document.createElement("li");
+      li.textContent = `${item.label}: ${formatQty(item.total)} ${item.unit}`;
+      list.appendChild(li);
+    });
+
+    card.append(title, list);
+    refs.shoppingWeeks.appendChild(card);
+  });
+}
+
 function renderRules() {
   refs.rulePills.innerHTML = RULES.map((rule) => `<div class="rule-pill">${rule}</div>`).join("");
 }
 
 function generateMonthPlan() {
-  const selected = refs.monthPicker.value;
-  if (!selected) return;
+  if (!activeMonthContext) return;
+  if (!validateWeekSelection()) return;
 
-  const [year, month] = selected.split("-").map(Number);
-  activePlan = buildPlan(year, month - 1);
+  activePlan = buildPlan(activeMonthContext);
   renderPlan(activePlan);
+  renderWeeklyShopping(activePlan);
 }
 
-refs.generateBtn.addEventListener("click", generateMonthPlan);
+function setMonthFromPicker() {
+  if (!refs.monthPicker.value) return;
+  const [year, month] = refs.monthPicker.value.split("-").map(Number);
+  activeMonthContext = getMonthContext(year, month - 1);
+  weekConfigState = buildDefaultWeekConfig(activeMonthContext);
+  renderWeekConfig();
+}
+
+refs.weekConfig.addEventListener("click", (event) => {
+  const btn = event.target.closest("button[data-week-key][data-date-key]");
+  if (!btn) return;
+
+  const { weekKey, dateKey: dKey } = btn.dataset;
+  weekConfigState[weekKey][dKey] = !weekConfigState[weekKey][dKey];
+
+  renderWeekConfig();
+  generateMonthPlan();
+});
+
+refs.generateBtn.addEventListener("click", () => {
+  setMonthFromPicker();
+  generateMonthPlan();
+});
+
+refs.monthPicker.addEventListener("change", () => {
+  setMonthFromPicker();
+  generateMonthPlan();
+});
+
 refs.closeDialog.addEventListener("click", () => refs.dialog.close());
 refs.dialog.addEventListener("click", (event) => {
   const rect = refs.dialog.getBoundingClientRect();
@@ -505,6 +745,7 @@ function init() {
   renderRules();
   const now = new Date();
   refs.monthPicker.value = formatMonthISO(now);
+  setMonthFromPicker();
   generateMonthPlan();
 }
 

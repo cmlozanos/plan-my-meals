@@ -38,6 +38,18 @@
         <div class="pill-grid" id="rulePills"></div>
       </section>
 
+      <section class="week-config" aria-labelledby="weekConfigTitle">
+        <div class="section-heading">
+          <h2 id="weekConfigTitle">Configuracion semanal flexible</h2>
+          <p>
+            En cada semana puedes marcar 5 dias laborables y 2 festivos. Los laborables dejan la comida para
+            2 adultos, y en festivos comen tambien los ninos.
+          </p>
+        </div>
+        <p id="weekConfigWarning" class="warning" hidden></p>
+        <div id="weekConfig" class="week-grid"></div>
+      </section>
+
       <section class="stats" aria-label="Resumen del mes">
         <article>
           <h3>Comidas (Lunch)</h3>
@@ -63,6 +75,16 @@
           <p>Haz clic en una comida o cena para ver receta, cantidades de preparacion y cantidades de servicio.</p>
         </div>
         <div id="calendar" class="calendar" role="list"></div>
+      </section>
+
+      <section class="shopping" aria-labelledby="shoppingTitle">
+        <div class="section-heading">
+          <h2 id="shoppingTitle">Compra semanal recomendada</h2>
+          <p>
+            Resumen por semana con cantidades totales de ingredientes segun tu seleccion de laborables y festivos.
+          </p>
+        </div>
+        <div id="shoppingWeeks" class="shopping-grid"></div>
       </section>
     </main>
 
