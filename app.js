@@ -3,6 +3,7 @@ const FAMILY = { adults: 2, kids: 2 };
 const RULES = [
   "Comidas y cenas hiper proteicas para organizacion mensual.",
   "La cena nunca usa ni cerdo ni ternera (solo pollo o atun).",
+  "La cena evita ingredientes mas pesados de digerir, como garbanzos por la noche.",
   "Cada semana puede configurarse con 5 dias laborables y 2 festivos.",
   "Laborables: los ninos solo cenan en casa.",
   "Hogar de 2 adultos + 2 ninos.",
@@ -226,7 +227,7 @@ const RECIPES = [
     id: "tuna-chickpea-bowl",
     title: "Bol templado de atun con garbanzo y verduras",
     protein: "tuna",
-    mealTags: ["lunch", "dinner"],
+    mealTags: ["lunch"],
     time: "25 min",
     level: "Basico",
     components: {
@@ -248,6 +249,34 @@ const RECIPES = [
       "Mezcla atun, garbanzo y verduras con el resto de aceite, limon y oregano.",
       "Para ninos, aplasta una parte del garbanzo para que el conjunto sea facil de comer.",
       "Sirve inmediatamente y verifica que cada bol tenga una porcion clara de atun."
+    ]
+  },
+  {
+    id: "tuna-rice-zucchini",
+    title: "Atun templado con arroz blanco y calabacin suave",
+    protein: "tuna",
+    mealTags: ["dinner"],
+    time: "25 min",
+    level: "Basico",
+    components: {
+      protein: { label: "Atun enlatado escurrido", adult: 190, kid: 110, unit: "g" },
+      carb: { label: "Arroz blanco crudo", adult: 85, kid: 45, unit: "g" },
+      veg: { label: "Calabacin pelado", adult: 120, kid: 70, unit: "g" },
+      oil: { label: "Aceite de oliva", adult: 7, kid: 4, unit: "ml" },
+      seasoning: { label: "Sal + oregano suave", adult: 1.5, kid: 0.8, unit: "g" }
+    },
+    serviceGuide: [
+      "Adulto: bol templado con arroz blanco, atun y calabacin bien hecho.",
+      "Nino: version mas pequena, con atun bien desmigado y calabacin muy tierno."
+    ],
+    steps: (q) => [
+      `Lava ${q.carb} de arroz blanco hasta que el agua salga casi clara para que quede mas suelto y ligero.`,
+      "Cuece el arroz con el doble de agua y una pizca de sal durante 12 minutos. Deja reposar 5 minutos tapado.",
+      `Pela parcialmente y corta ${q.veg} de calabacin en medias lunas finas para que se cocinen rapido y queden suaves.`,
+      "Calienta una sarten con aceite a fuego medio y cocina el calabacin 6-7 minutos, removiendo, hasta que este muy tierno.",
+      `Escurre ${q.protein} de atun y anadelo al final solo 1 minuto para templarlo sin resecarlo.`,
+      "Mezcla con el arroz blanco ya cocido y ajusta con una pizca de sal y oregano suave.",
+      "Sirve caliente pero no muy fuerte de temperatura para una cena mas comoda de digerir."
     ]
   }
 ];
