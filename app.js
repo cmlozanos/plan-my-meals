@@ -1,7 +1,7 @@
 const FAMILY = { adults: 2, kids: 2 };
 
 const RULES = [
-  "Comidas y cenas hiper proteicas para organizacion mensual.",
+  "Plan anual hiperproteico con vista semanal.",
   "La cena nunca usa ni cerdo ni ternera (solo pollo o atun).",
   "La cena evita ingredientes pesados de digerir y no usa garbanzos ni arroz por la noche.",
   "De lunes a viernes, los ninos solo cenan en casa.",
@@ -281,12 +281,16 @@ const RECIPES = [
 ];
 
 const refs = {
-  monthPicker: document.querySelector("#monthPicker"),
+  yearPicker: document.querySelector("#yearPicker"),
   generateBtn: document.querySelector("#generateBtn"),
   installBtn: document.querySelector("#installBtn"),
   prevWeekBtn: document.querySelector("#prevWeekBtn"),
   nextWeekBtn: document.querySelector("#nextWeekBtn"),
   currentWeekLabel: document.querySelector("#currentWeekLabel"),
+  ingredientSearch: document.querySelector("#ingredientSearch"),
+  mealTypeSearch: document.querySelector("#mealTypeSearch"),
+  searchBtn: document.querySelector("#searchBtn"),
+  searchResults: document.querySelector("#searchResults"),
   rulePills: document.querySelector("#rulePills"),
   calendar: document.querySelector("#calendar"),
   shoppingWeeks: document.querySelector("#shoppingWeeks"),
@@ -306,15 +310,9 @@ const refs = {
 
 let deferredPrompt;
 let activePlan = [];
-let activeMonthContext = null;
+let activeYearContext = null;
 let currentWeekIndex = 0;
 let shoppingSelectionState = {};
-
-function formatMonthISO(date) {
-  const y = date.getFullYear();
-  const m = `${date.getMonth() + 1}`.padStart(2, "0");
-  return `${y}-${m}`;
-}
 
 function formatQty(value) {
   const rounded = Math.round(value * 10) / 10;
@@ -356,17 +354,24 @@ function toShortDate(date) {
   }).format(date);
 }
 
-function getMonthContext(year, monthIndex) {
-  const totalDays = new Date(year, monthIndex + 1, 0).getDate();
-  const days = [];
+function normalizeText(text) {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
 
-  for (let day = 1; day <= totalDays; day += 1) {
-    const date = new Date(year, monthIndex, day);
+function getYearContext(year) {
+  const days = [];
+  const date = new Date(year, 0, 1);
+
+  while (date.getFullYear() === year) {
     days.push({
-      date,
+      date: new Date(date),
       dateKey: dateKey(date),
       weekKey: weekStartKey(date)
     });
+    date.setDate(date.getDate() + 1);
   }
 
   const weekMap = new Map();
@@ -383,12 +388,12 @@ function getMonthContext(year, monthIndex) {
     }))
     .sort((a, b) => a.days[0].date - b.days[0].date);
 
-  return { year, monthIndex, days, weeks };
+  return { year, days, weeks };
 }
 
-function buildDefaultShoppingSelection(monthContext) {
+function buildDefaultShoppingSelection(yearContext) {
   const config = {};
-  monthContext.weeks.forEach((week) => {
+  yearContext.weeks.forEach((week) => {
     config[week.key] = {};
     week.days.forEach((dayInfo) => {
       config[week.key][dayInfo.dateKey] = true;
@@ -406,14 +411,14 @@ function pickRecipe(recipesByProtein, protein, mealTag, state) {
   return recipe;
 }
 
-function buildPlan(monthContext) {
+function buildPlan(yearContext) {
   const recipesByProtein = PROTEIN_ROTATION.reduce((acc, protein) => {
     acc[protein] = RECIPES.filter((recipe) => recipe.protein === protein);
     return acc;
   }, {});
 
   const state = {};
-  return monthContext.days.map((dayInfo, dayIndex) => {
+  return yearContext.days.map((dayInfo, dayIndex) => {
     const lunchProtein = PROTEIN_ROTATION[dayIndex % PROTEIN_ROTATION.length];
     let dinnerProtein = DINNER_PROTEIN_ROTATION[dayIndex % DINNER_PROTEIN_ROTATION.length];
 
@@ -425,8 +430,6 @@ function buildPlan(monthContext) {
     const lunchAudience = workday
       ? { adults: FAMILY.adults, kids: 0 }
       : { adults: FAMILY.adults, kids: FAMILY.kids };
-
-    const dinnerAudience = { adults: FAMILY.adults, kids: FAMILY.kids };
 
     return {
       date: dayInfo.date,
@@ -444,7 +447,7 @@ function buildPlan(monthContext) {
         tag: "dinner",
         title: "Cena",
         protein: dinnerProtein,
-        audience: dinnerAudience,
+        audience: { adults: FAMILY.adults, kids: FAMILY.kids },
         recipe: pickRecipe(recipesByProtein, dinnerProtein, "dinner", state)
       }
     };
@@ -481,8 +484,8 @@ function makeQuantities(recipe, audience) {
 }
 
 function getVisibleWeek() {
-  if (!activeMonthContext) return null;
-  return activeMonthContext.weeks[currentWeekIndex] || null;
+  if (!activeYearContext) return null;
+  return activeYearContext.weeks[currentWeekIndex] || null;
 }
 
 function getVisibleWeekPlan() {
@@ -506,11 +509,11 @@ function updateWeekNavigation() {
   const week = getVisibleWeek();
   if (!week) return;
 
-  refs.currentWeekLabel.textContent = `Semana ${week.index}: ${toShortDate(week.days[0].date)} - ${toShortDate(
+  refs.currentWeekLabel.textContent = `Semana ${week.index} · ${toShortDate(week.days[0].date)} - ${toShortDate(
     week.days[week.days.length - 1].date
   )}`;
   refs.prevWeekBtn.disabled = currentWeekIndex === 0;
-  refs.nextWeekBtn.disabled = currentWeekIndex === activeMonthContext.weeks.length - 1;
+  refs.nextWeekBtn.disabled = currentWeekIndex === activeYearContext.weeks.length - 1;
 }
 
 function openRecipeDialog(dayText, meal) {
@@ -524,7 +527,7 @@ function openRecipeDialog(dayText, meal) {
   refs.dialog.showModal();
 }
 
-function renderPlan() {
+function renderWeekPlan() {
   const weekPlan = getVisibleWeekPlan();
   refs.calendar.innerHTML = "";
 
@@ -580,7 +583,7 @@ function renderPlan() {
   updateStats(weekPlan);
 }
 
-function renderShopping() {
+function renderShoppingForVisibleWeek() {
   const week = getVisibleWeek();
   const weekPlan = getVisibleWeekPlan();
   refs.shoppingWeeks.innerHTML = "";
@@ -611,6 +614,8 @@ function renderShopping() {
     toggleWrap.appendChild(btn);
   });
 
+  card.append(title, summary, toggleWrap);
+
   const ingredients = new Map();
   weekPlan
     .filter((day) => shoppingSelectionState[week.key]?.[day.dateKey])
@@ -624,8 +629,6 @@ function renderShopping() {
         });
       });
     });
-
-  card.append(title, summary, toggleWrap);
 
   const items = Array.from(ingredients.values()).sort((a, b) => a.label.localeCompare(b.label, "es"));
   if (items.length === 0) {
@@ -654,29 +657,95 @@ function renderRules() {
 
 function renderVisibleWeek() {
   updateWeekNavigation();
-  renderPlan();
-  renderShopping();
+  renderWeekPlan();
+  renderShoppingForVisibleWeek();
 }
 
 function setCurrentWeekIndexFromToday() {
   const today = new Date();
   const todayKey = dateKey(today);
-  const idx = activeMonthContext.weeks.findIndex((week) => week.days.some((day) => day.dateKey === todayKey));
+  const idx = activeYearContext.weeks.findIndex((week) => week.days.some((day) => day.dateKey === todayKey));
   currentWeekIndex = idx >= 0 ? idx : 0;
 }
 
-function generateMonthPlan() {
-  if (!activeMonthContext) return;
-  activePlan = buildPlan(activeMonthContext);
+function generateYearPlan() {
+  if (!activeYearContext) return;
+  activePlan = buildPlan(activeYearContext);
   renderVisibleWeek();
+  refs.searchResults.innerHTML = "";
 }
 
-function setMonthFromPicker() {
-  if (!refs.monthPicker.value) return;
-  const [year, month] = refs.monthPicker.value.split("-").map(Number);
-  activeMonthContext = getMonthContext(year, month - 1);
-  shoppingSelectionState = buildDefaultShoppingSelection(activeMonthContext);
+function setYearFromPicker() {
+  const year = Number(refs.yearPicker.value);
+  if (!Number.isFinite(year) || year < 2025 || year > 2035) return;
+  activeYearContext = getYearContext(year);
+  shoppingSelectionState = buildDefaultShoppingSelection(activeYearContext);
   setCurrentWeekIndexFromToday();
+}
+
+function runSearch() {
+  if (!activePlan.length) return;
+
+  const rawIngredient = refs.ingredientSearch.value.trim();
+  const normalizedIngredient = normalizeText(rawIngredient);
+  const mealType = refs.mealTypeSearch.value;
+
+  if (!rawIngredient) {
+    refs.searchResults.innerHTML = "<p class='week-status'>Escribe un ingrediente para buscar en el plan anual.</p>";
+    return;
+  }
+
+  const matches = [];
+
+  activePlan.forEach((day) => {
+    [day.lunch, day.dinner].forEach((meal) => {
+      if (mealType !== "all" && meal.tag !== mealType) return;
+
+      const haystack = normalizeText(
+        [
+          meal.recipe.title,
+          PROTEIN_LABEL[meal.recipe.protein],
+          ...Object.values(meal.recipe.components).map((component) => component.label)
+        ].join(" ")
+      );
+
+      if (haystack.includes(normalizedIngredient)) {
+        matches.push({
+          date: day.date,
+          dateKey: day.dateKey,
+          mealTag: meal.tag,
+          meal
+        });
+      }
+    });
+  });
+
+  if (!matches.length) {
+    refs.searchResults.innerHTML = "<p class='week-status'>No hay resultados para ese ingrediente en este ano.</p>";
+    return;
+  }
+
+  const capped = matches.slice(0, 120);
+  const html = [
+    `<p class='week-status'>${matches.length} resultado(s). Mostrando ${capped.length}.</p>`,
+    ...capped.map((item) => {
+      const dateLabel = new Intl.DateTimeFormat("es-ES", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        weekday: "short"
+      }).format(item.date);
+
+      const mealLabel = item.mealTag === "lunch" ? "Comida" : "Cena";
+
+      return `<div class='search-item'>
+        <p><strong>${mealLabel}</strong> · ${dateLabel} · ${item.meal.recipe.title}</p>
+        <button type='button' data-date-key='${item.dateKey}' data-meal-tag='${item.mealTag}'>Ver receta</button>
+      </div>`;
+    })
+  ].join("");
+
+  refs.searchResults.innerHTML = html;
 }
 
 refs.shoppingWeeks.addEventListener("click", (event) => {
@@ -684,7 +753,19 @@ refs.shoppingWeeks.addEventListener("click", (event) => {
   if (!btn) return;
   const { weekKey, dateKey: dKey } = btn.dataset;
   shoppingSelectionState[weekKey][dKey] = !shoppingSelectionState[weekKey][dKey];
-  renderShopping();
+  renderShoppingForVisibleWeek();
+});
+
+refs.searchResults.addEventListener("click", (event) => {
+  const btn = event.target.closest("button[data-date-key][data-meal-tag]");
+  if (!btn) return;
+
+  const day = activePlan.find((entry) => entry.dateKey === btn.dataset.dateKey);
+  if (!day) return;
+
+  const meal = btn.dataset.mealTag === "lunch" ? day.lunch : day.dinner;
+  const dayText = toLongDate(day.date);
+  openRecipeDialog(dayText.charAt(0).toUpperCase() + dayText.slice(1), meal);
 });
 
 refs.prevWeekBtn.addEventListener("click", () => {
@@ -694,19 +775,19 @@ refs.prevWeekBtn.addEventListener("click", () => {
 });
 
 refs.nextWeekBtn.addEventListener("click", () => {
-  if (!activeMonthContext || currentWeekIndex >= activeMonthContext.weeks.length - 1) return;
+  if (!activeYearContext || currentWeekIndex >= activeYearContext.weeks.length - 1) return;
   currentWeekIndex += 1;
   renderVisibleWeek();
 });
 
-refs.generateBtn.addEventListener("click", () => {
-  setMonthFromPicker();
-  generateMonthPlan();
+refs.searchBtn.addEventListener("click", runSearch);
+refs.ingredientSearch.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") runSearch();
 });
 
-refs.monthPicker.addEventListener("change", () => {
-  setMonthFromPicker();
-  generateMonthPlan();
+refs.generateBtn.addEventListener("click", () => {
+  setYearFromPicker();
+  generateYearPlan();
 });
 
 refs.closeDialog.addEventListener("click", () => refs.dialog.close());
@@ -746,10 +827,9 @@ if ("serviceWorker" in navigator) {
 
 function init() {
   renderRules();
-  const now = new Date();
-  refs.monthPicker.value = formatMonthISO(now);
-  setMonthFromPicker();
-  generateMonthPlan();
+  refs.yearPicker.value = String(new Date().getFullYear());
+  setYearFromPicker();
+  generateYearPlan();
 }
 
 init();

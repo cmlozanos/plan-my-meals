@@ -176,6 +176,7 @@ main {
 
 .philosophy,
 .stats,
+.search,
 .shopping,
 section[aria-labelledby="calendarTitle"] {
   background: var(--surface);
@@ -186,6 +187,7 @@ section[aria-labelledby="calendarTitle"] {
 }
 
 .philosophy,
+.search,
 .shopping,
 section[aria-labelledby="calendarTitle"] {
   padding: 0.85rem;
@@ -243,6 +245,71 @@ section[aria-labelledby="calendarTitle"] {
   margin: 0;
   color: var(--ink-soft);
   font-size: 0.9rem;
+}
+
+.search-controls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.45rem;
+}
+
+.search-controls label {
+  font-size: 0.87rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.search-controls input,
+.search-controls select,
+.search-controls button {
+  min-height: 2.6rem;
+  border-radius: 0.68rem;
+  border: 1px solid rgba(18, 71, 52, 0.24);
+  padding: 0.55rem 0.62rem;
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.search-controls input,
+.search-controls select {
+  background: #fff;
+  color: var(--ink);
+}
+
+.search-controls button {
+  background: #f1f7f3;
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.search-results {
+  margin-top: 0.7rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.search-item {
+  border: 1px solid rgba(18, 71, 52, 0.21);
+  border-radius: 0.72rem;
+  padding: 0.58rem;
+  background: #fffeff;
+}
+
+.search-item p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.34;
+}
+
+.search-item button {
+  margin-top: 0.45rem;
+  min-height: 2rem;
+  border: 1px solid rgba(18, 71, 52, 0.22);
+  border-radius: 0.55rem;
+  padding: 0.28rem 0.5rem;
+  background: #f1f7f3;
+  color: var(--brand);
+  font-weight: 700;
 }
 
 .week-nav {
@@ -441,6 +508,12 @@ li {
     align-items: center;
   }
 
+  .search-controls {
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+    column-gap: 0.6rem;
+  }
+
   .controls label {
     margin-right: 0.2rem;
   }
@@ -480,6 +553,10 @@ li {
   .pill-grid,
   .calendar {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .search-controls {
+    grid-template-columns: 0.7fr 1fr 0.5fr 0.8fr 0.6fr;
   }
 
   .shopping-grid {

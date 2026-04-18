@@ -25,9 +25,9 @@
       </p>
 
       <div class="controls" aria-label="Controles de planificacion">
-        <label for="monthPicker">Mes:</label>
-        <input id="monthPicker" type="month" />
-        <button id="generateBtn" type="button">Generar plan mensual</button>
+        <label for="yearPicker">Ano:</label>
+        <input id="yearPicker" type="number" min="2025" max="2035" step="1" />
+        <button id="generateBtn" type="button">Generar plan anual</button>
         <button id="installBtn" type="button" class="ghost" hidden>Instalar app</button>
       </div>
     </header>
@@ -36,6 +36,25 @@
       <section class="philosophy" aria-labelledby="philosophyTitle">
         <h2 id="philosophyTitle">Filosofia de planificacion</h2>
         <div class="pill-grid" id="rulePills"></div>
+      </section>
+
+      <section class="search" aria-labelledby="searchTitle">
+        <div class="section-heading">
+          <h2 id="searchTitle">Buscador de comidas y cenas</h2>
+          <p>Busca por ingrediente para localizar rapidamente platos del plan anual.</p>
+        </div>
+        <div class="search-controls" aria-label="Buscar comidas y cenas">
+          <label for="ingredientSearch">Ingrediente:</label>
+          <input id="ingredientSearch" type="text" placeholder="Ejemplo: atun o pollo" />
+          <label for="mealTypeSearch">Tipo:</label>
+          <select id="mealTypeSearch">
+            <option value="all">Todo</option>
+            <option value="lunch">Comidas</option>
+            <option value="dinner">Cenas</option>
+          </select>
+          <button id="searchBtn" type="button">Buscar</button>
+        </div>
+        <div id="searchResults" class="search-results" aria-live="polite"></div>
       </section>
 
       <section class="stats" aria-label="Resumen del mes">
