@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#124734" />
     <meta
       name="description"
-      content="PlanMyMeals organiza tus comidas y cenas hiper proteicas del mes para 2 adultos y 2 ninos, con cantidades y pasos faciles de seguir."
+      content="PlanMyMeals crea un plan anual de comidas hiper proteicas con vista semanal, compra semanal y busqueda por ingrediente."
     />
     <title>PlanMyMeals</title>
     <link rel="manifest" href="manifest.webmanifest" />
@@ -16,87 +16,122 @@
     <div class="bg-orb orb-1" aria-hidden="true"></div>
     <div class="bg-orb orb-2" aria-hidden="true"></div>
 
-    <header class="hero">
-      <p class="eyebrow">PWA Personal</p>
-      <h1>PlanMyMeals</h1>
-      <p class="hero-subtitle">
-        Planificador mensual de comidas y cenas hiper proteicas para 2 adultos y 2 ninos, con reglas claras,
-        cantidades exactas y pasos detallados para no-chefs.
-      </p>
-
-      <div class="controls" aria-label="Controles de planificacion">
-        <label for="yearPicker">Ano:</label>
-        <input id="yearPicker" type="number" min="2025" max="2035" step="1" />
-        <button id="generateBtn" type="button">Generar plan anual</button>
-        <button id="installBtn" type="button" class="ghost" hidden>Instalar app</button>
+    <aside id="drawer" class="drawer" aria-hidden="true">
+      <div class="drawer-panel">
+        <div class="drawer-header">
+          <p class="eyebrow">PlanMyMeals</p>
+          <button id="closeDrawerBtn" type="button" class="icon-btn" aria-label="Cerrar menu">x</button>
+        </div>
+        <nav class="drawer-nav" aria-label="Menu principal">
+          <button type="button" class="nav-link active" data-page="weekPage">Semana</button>
+          <button type="button" class="nav-link" data-page="shoppingPage">Compra</button>
+          <button type="button" class="nav-link" data-page="searchPage">Buscar</button>
+          <button type="button" class="nav-link" data-page="rulesPage">Reglas</button>
+        </nav>
       </div>
+    </aside>
+
+    <header class="topbar">
+      <button id="openDrawerBtn" type="button" class="icon-btn" aria-label="Abrir menu">☰</button>
+      <div>
+        <p class="eyebrow">PWA Personal</p>
+        <h1>PlanMyMeals</h1>
+      </div>
+      <button id="installBtn" type="button" class="install-btn" hidden>Instalar</button>
     </header>
 
-    <main>
-      <section class="philosophy" aria-labelledby="philosophyTitle">
-        <h2 id="philosophyTitle">Filosofia de planificacion</h2>
-        <div class="pill-grid" id="rulePills"></div>
-      </section>
-
-      <section class="search" aria-labelledby="searchTitle">
-        <div class="section-heading">
-          <h2 id="searchTitle">Buscador de comidas y cenas</h2>
-          <p>Busca por ingrediente para localizar rapidamente platos del plan anual.</p>
-        </div>
-        <div class="search-controls" aria-label="Buscar comidas y cenas">
-          <label for="ingredientSearch">Ingrediente:</label>
-          <input id="ingredientSearch" type="text" placeholder="Ejemplo: atun o pollo" />
-          <label for="mealTypeSearch">Tipo:</label>
-          <select id="mealTypeSearch">
-            <option value="all">Todo</option>
-            <option value="lunch">Comidas</option>
-            <option value="dinner">Cenas</option>
-          </select>
-          <button id="searchBtn" type="button">Buscar</button>
-        </div>
-        <div id="searchResults" class="search-results" aria-live="polite"></div>
-      </section>
-
-      <section class="stats" aria-label="Resumen del mes">
-        <article>
-          <h3>Comidas (Lunch)</h3>
-          <p id="lunchCount">0</p>
-        </article>
-        <article>
-          <h3>Cenas</h3>
-          <p id="dinnerCount">0</p>
-        </article>
-        <article>
-          <h3>Raciones Adulto</h3>
-          <p id="adultServings">0</p>
-        </article>
-        <article>
-          <h3>Raciones Nino</h3>
-          <p id="kidServings">0</p>
-        </article>
-      </section>
-
-      <section aria-labelledby="calendarTitle">
-        <div class="section-heading">
-          <h2 id="calendarTitle">Plan de la semana</h2>
-          <p>Haz clic en una comida o cena para ver receta, cantidades de preparacion y cantidades de servicio.</p>
-        </div>
-        <div class="week-nav" aria-label="Navegacion semanal">
-          <button id="prevWeekBtn" type="button" class="nav-btn" aria-label="Semana anterior">&larr;</button>
-          <p id="currentWeekLabel" class="current-week-label"></p>
-          <button id="nextWeekBtn" type="button" class="nav-btn" aria-label="Semana siguiente">&rarr;</button>
-        </div>
-        <div id="calendar" class="calendar" role="list"></div>
-      </section>
-
-      <section class="shopping" aria-labelledby="shoppingTitle">
-        <div class="section-heading">
-          <h2 id="shoppingTitle">Compra de la semana visible</h2>
+    <main class="app-shell">
+      <section id="weekPage" class="page active" aria-labelledby="weekPageTitle">
+        <div class="hero-card">
+          <h2 id="weekPageTitle">Plan semanal</h2>
           <p>
-            Marca solo los dias que quieras incluir en la hoja de compra de esta semana.
+            Plan anual con 730 platos unicos. Solo ves una semana cada vez, pero el ano completo ya esta generado.
           </p>
+          <div class="controls" aria-label="Controles anuales">
+            <label for="yearPicker">Ano</label>
+            <input id="yearPicker" type="number" min="2025" max="2035" step="1" />
+            <button id="generateBtn" type="button">Generar plan anual</button>
+          </div>
         </div>
-        <div id="shoppingWeeks" class="shopping-grid"></div>
+
+        <section class="stats" aria-label="Resumen de la semana visible">
+          <article>
+            <h3>Comidas</h3>
+            <p id="lunchCount">0</p>
+          </article>
+          <article>
+            <h3>Cenas</h3>
+            <p id="dinnerCount">0</p>
+          </article>
+          <article>
+            <h3>Raciones Adulto</h3>
+            <p id="adultServings">0</p>
+          </article>
+          <article>
+            <h3>Raciones Nino</h3>
+            <p id="kidServings">0</p>
+          </article>
+        </section>
+
+        <section class="panel" aria-labelledby="calendarTitle">
+          <div class="section-heading">
+            <h2 id="calendarTitle">Esta semana</h2>
+            <p>Usa las flechas para moverte por el ano. Cada plato del ano es unico y no repite combinacion.</p>
+          </div>
+          <div class="week-nav" aria-label="Navegacion semanal">
+            <button id="prevWeekBtn" type="button" class="nav-btn" aria-label="Semana anterior">&larr;</button>
+            <p id="currentWeekLabel" class="current-week-label"></p>
+            <button id="nextWeekBtn" type="button" class="nav-btn" aria-label="Semana siguiente">&rarr;</button>
+          </div>
+          <div id="calendar" class="calendar" role="list"></div>
+        </section>
+      </section>
+
+      <section id="shoppingPage" class="page" aria-labelledby="shoppingTitle">
+        <section class="panel">
+          <div class="section-heading">
+            <h2 id="shoppingTitle">Compra semanal</h2>
+            <p>Marca solo los dias de esta semana que quieres incluir en tu hoja de compra.</p>
+          </div>
+          <div id="shoppingWeeks" class="shopping-grid"></div>
+        </section>
+      </section>
+
+      <section id="searchPage" class="page" aria-labelledby="searchTitle">
+        <section class="panel">
+          <div class="section-heading">
+            <h2 id="searchTitle">Buscar platos</h2>
+            <p>Busca en todo el ano por ingrediente o proteina base.</p>
+          </div>
+          <div class="search-controls" aria-label="Buscar comidas y cenas">
+            <label for="ingredientSearch">Ingrediente</label>
+            <input id="ingredientSearch" type="text" placeholder="Ejemplo: atun, pollo, patata, calabacin" />
+            <label for="mealTypeSearch">Tipo</label>
+            <select id="mealTypeSearch">
+              <option value="all">Todo</option>
+              <option value="lunch">Comidas</option>
+              <option value="dinner">Cenas</option>
+            </select>
+            <button id="searchBtn" type="button">Buscar</button>
+          </div>
+          <div id="searchResults" class="search-results" aria-live="polite"></div>
+        </section>
+      </section>
+
+      <section id="rulesPage" class="page" aria-labelledby="rulesTitle">
+        <section class="panel">
+          <div class="section-heading">
+            <h2 id="rulesTitle">Reglas y criterio</h2>
+            <p>Esta informacion queda fuera de la portada y vive dentro del menu hamburguesa.</p>
+          </div>
+          <div id="rulePills" class="pill-grid"></div>
+          <div class="source-box">
+            <h3>Inspiracion culinaria</h3>
+            <p>
+              El recetario anual usa familias de platos inspiradas en enfoques y colecciones publicadas por medios de referencia como BBC Good Food, EatingWell y Serious Eats, pero adaptadas a tus reglas de familia, digestion nocturna y planificacion anual unica.
+            </p>
+          </div>
+        </section>
       </section>
     </main>
 
