@@ -245,6 +245,37 @@ section[aria-labelledby="calendarTitle"] {
   font-size: 0.9rem;
 }
 
+.week-nav {
+  display: grid;
+  grid-template-columns: 2.8rem 1fr 2.8rem;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.nav-btn {
+  min-height: 2.8rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(18, 71, 52, 0.25);
+  background: #f1f7f3;
+  color: var(--brand);
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.nav-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.current-week-label {
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+  color: var(--brand);
+  font-size: 0.92rem;
+}
+
 .shopping-grid,
 .calendar {
   display: grid;
@@ -424,9 +455,12 @@ li {
   }
 
   .pill-grid,
-  .shopping-grid,
   .calendar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shopping-grid {
+    grid-template-columns: 1fr;
   }
 
   .day-toggle-wrap {
@@ -444,9 +478,12 @@ li {
   }
 
   .pill-grid,
-  .shopping-grid,
   .calendar {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .shopping-grid {
+    grid-template-columns: 1fr;
   }
 
   .day-toggle-wrap {

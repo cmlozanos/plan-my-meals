@@ -3,7 +3,7 @@ const FAMILY = { adults: 2, kids: 2 };
 const RULES = [
   "Comidas y cenas hiper proteicas para organizacion mensual.",
   "La cena nunca usa ni cerdo ni ternera (solo pollo o atun).",
-  "La cena evita ingredientes mas pesados de digerir, como garbanzos por la noche.",
+  "La cena evita ingredientes pesados de digerir y no usa garbanzos ni arroz por la noche.",
   "De lunes a viernes, los ninos solo cenan en casa.",
   "Sabados y domingos, comen y cenan en casa los 4.",
   "Hogar de 2 adultos + 2 ninos.",
@@ -16,6 +16,7 @@ const RULES = [
 
 const PROTEIN_ROTATION = ["chicken", "beef", "pork", "tuna"];
 const DINNER_PROTEIN_ROTATION = ["chicken", "tuna"];
+const WEEKDAY_SHORT = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
 
 const PROTEIN_LABEL = {
   chicken: "Pollo",
@@ -23,8 +24,6 @@ const PROTEIN_LABEL = {
   pork: "Cerdo",
   tuna: "Atun enlatado"
 };
-
-const WEEKDAY_SHORT = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
 
 const RECIPES = [
   {
@@ -87,7 +86,7 @@ const RECIPES = [
     id: "beef-strips-rice",
     title: "Tiras de ternera salteadas con arroz y pimiento",
     protein: "beef",
-    mealTags: ["lunch", "dinner"],
+    mealTags: ["lunch"],
     time: "30 min",
     level: "Basico",
     components: {
@@ -115,7 +114,7 @@ const RECIPES = [
     id: "beef-meatballs",
     title: "Albondagas de ternera al tomate natural",
     protein: "beef",
-    mealTags: ["lunch", "dinner"],
+    mealTags: ["lunch"],
     time: "45 min",
     level: "Basico+",
     components: {
@@ -143,7 +142,7 @@ const RECIPES = [
     id: "pork-loin-mash",
     title: "Medallones de lomo de cerdo con pure rustico",
     protein: "pork",
-    mealTags: ["lunch", "dinner"],
+    mealTags: ["lunch"],
     time: "35 min",
     level: "Basico",
     components: {
@@ -171,7 +170,7 @@ const RECIPES = [
     id: "pork-stirfry-sweet-potato",
     title: "Cerdo salteado con boniato asado",
     protein: "pork",
-    mealTags: ["lunch", "dinner"],
+    mealTags: ["lunch"],
     time: "40 min",
     level: "Basico",
     components: {
@@ -252,30 +251,30 @@ const RECIPES = [
     ]
   },
   {
-    id: "tuna-rice-zucchini",
-    title: "Atun templado con arroz blanco y calabacin suave",
+    id: "tuna-potato-zucchini",
+    title: "Atun templado con patata cocida y calabacin suave",
     protein: "tuna",
     mealTags: ["dinner"],
     time: "25 min",
     level: "Basico",
     components: {
       protein: { label: "Atun enlatado escurrido", adult: 190, kid: 110, unit: "g" },
-      carb: { label: "Arroz blanco crudo", adult: 85, kid: 45, unit: "g" },
+      carb: { label: "Patata", adult: 180, kid: 100, unit: "g" },
       veg: { label: "Calabacin pelado", adult: 120, kid: 70, unit: "g" },
       oil: { label: "Aceite de oliva", adult: 7, kid: 4, unit: "ml" },
       seasoning: { label: "Sal + oregano suave", adult: 1.5, kid: 0.8, unit: "g" }
     },
     serviceGuide: [
-      "Adulto: bol templado con arroz blanco, atun y calabacin bien hecho.",
+      "Adulto: bol templado con patata, atun y calabacin bien hecho.",
       "Nino: version mas pequena, con atun bien desmigado y calabacin muy tierno."
     ],
     steps: (q) => [
-      `Lava ${q.carb} de arroz blanco hasta que el agua salga casi clara para que quede mas suelto y ligero.`,
-      "Cuece el arroz con el doble de agua y una pizca de sal durante 12 minutos. Deja reposar 5 minutos tapado.",
+      `Cuece ${q.carb} de patata en cubos medianos durante 12-15 minutos hasta que quede tierna sin deshacerse.`,
       `Pela parcialmente y corta ${q.veg} de calabacin en medias lunas finas para que se cocinen rapido y queden suaves.`,
       "Calienta una sarten con aceite a fuego medio y cocina el calabacin 6-7 minutos, removiendo, hasta que este muy tierno.",
       `Escurre ${q.protein} de atun y anadelo al final solo 1 minuto para templarlo sin resecarlo.`,
-      "Mezcla con el arroz blanco ya cocido y ajusta con una pizca de sal y oregano suave.",
+      "Mezcla con la patata ya cocida y ajusta con una pizca de sal y oregano suave.",
+      "Remueve con cuidado para no romper demasiado la patata.",
       "Sirve caliente pero no muy fuerte de temperatura para una cena mas comoda de digerir."
     ]
   }
@@ -285,6 +284,9 @@ const refs = {
   monthPicker: document.querySelector("#monthPicker"),
   generateBtn: document.querySelector("#generateBtn"),
   installBtn: document.querySelector("#installBtn"),
+  prevWeekBtn: document.querySelector("#prevWeekBtn"),
+  nextWeekBtn: document.querySelector("#nextWeekBtn"),
+  currentWeekLabel: document.querySelector("#currentWeekLabel"),
   rulePills: document.querySelector("#rulePills"),
   calendar: document.querySelector("#calendar"),
   shoppingWeeks: document.querySelector("#shoppingWeeks"),
@@ -305,6 +307,7 @@ const refs = {
 let deferredPrompt;
 let activePlan = [];
 let activeMonthContext = null;
+let currentWeekIndex = 0;
 let shoppingSelectionState = {};
 
 function formatMonthISO(date) {
@@ -316,21 +319,6 @@ function formatMonthISO(date) {
 function formatQty(value) {
   const rounded = Math.round(value * 10) / 10;
   return Number.isInteger(rounded) ? `${rounded}` : `${rounded.toFixed(1)}`;
-}
-
-function toLongDate(date) {
-  return new Intl.DateTimeFormat("es-ES", {
-    weekday: "long",
-    day: "numeric",
-    month: "long"
-  }).format(date);
-}
-
-function toShortDate(date) {
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "numeric",
-    month: "short"
-  }).format(date);
 }
 
 function dateKey(date) {
@@ -351,6 +339,21 @@ function weekStartKey(date) {
   const offsetToMonday = day === 0 ? -6 : 1 - day;
   copy.setDate(copy.getDate() + offsetToMonday);
   return dateKey(copy);
+}
+
+function toLongDate(date) {
+  return new Intl.DateTimeFormat("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long"
+  }).format(date);
+}
+
+function toShortDate(date) {
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "short"
+  }).format(date);
 }
 
 function getMonthContext(year, monthIndex) {
@@ -405,14 +408,12 @@ function pickRecipe(recipesByProtein, protein, mealTag, state) {
 
 function buildPlan(monthContext) {
   const recipesByProtein = PROTEIN_ROTATION.reduce((acc, protein) => {
-    acc[protein] = RECIPES.filter((r) => r.protein === protein);
+    acc[protein] = RECIPES.filter((recipe) => recipe.protein === protein);
     return acc;
   }, {});
 
   const state = {};
-  const plan = [];
-
-  monthContext.days.forEach((dayInfo, dayIndex) => {
+  return monthContext.days.map((dayInfo, dayIndex) => {
     const lunchProtein = PROTEIN_ROTATION[dayIndex % PROTEIN_ROTATION.length];
     let dinnerProtein = DINNER_PROTEIN_ROTATION[dayIndex % DINNER_PROTEIN_ROTATION.length];
 
@@ -427,33 +428,35 @@ function buildPlan(monthContext) {
 
     const dinnerAudience = { adults: FAMILY.adults, kids: FAMILY.kids };
 
-    const lunch = {
-      tag: "lunch",
-      title: "Comida",
-      protein: lunchProtein,
-      audience: lunchAudience,
-      recipe: pickRecipe(recipesByProtein, lunchProtein, "lunch", state)
-    };
-
-    const dinner = {
-      tag: "dinner",
-      title: "Cena",
-      protein: dinnerProtein,
-      audience: dinnerAudience,
-      recipe: pickRecipe(recipesByProtein, dinnerProtein, "dinner", state)
-    };
-
-    plan.push({
+    return {
       date: dayInfo.date,
       dateKey: dayInfo.dateKey,
       weekKey: dayInfo.weekKey,
       workday,
-      lunch,
-      dinner
-    });
+      lunch: {
+        tag: "lunch",
+        title: "Comida",
+        protein: lunchProtein,
+        audience: lunchAudience,
+        recipe: pickRecipe(recipesByProtein, lunchProtein, "lunch", state)
+      },
+      dinner: {
+        tag: "dinner",
+        title: "Cena",
+        protein: dinnerProtein,
+        audience: dinnerAudience,
+        recipe: pickRecipe(recipesByProtein, dinnerProtein, "dinner", state)
+      }
+    };
   });
+}
 
-  return plan;
+function getMealIngredients(meal) {
+  return Object.values(meal.recipe.components).map((component) => ({
+    label: component.label,
+    unit: component.unit,
+    total: component.adult * meal.audience.adults + component.kid * meal.audience.kids
+  }));
 }
 
 function makeQuantities(recipe, audience) {
@@ -477,47 +480,55 @@ function makeQuantities(recipe, audience) {
   return { prep, service, q };
 }
 
-function getMealIngredients(meal) {
-  return Object.values(meal.recipe.components).map((component) => {
-    const total = component.adult * meal.audience.adults + component.kid * meal.audience.kids;
-    return {
-      label: component.label,
-      unit: component.unit,
-      total
-    };
-  });
+function getVisibleWeek() {
+  if (!activeMonthContext) return null;
+  return activeMonthContext.weeks[currentWeekIndex] || null;
 }
 
-function updateStats(plan) {
-  refs.lunchCount.textContent = String(plan.length);
-  refs.dinnerCount.textContent = String(plan.length);
+function getVisibleWeekPlan() {
+  const week = getVisibleWeek();
+  if (!week) return [];
+  return activePlan.filter((day) => day.weekKey === week.key);
+}
 
-  const adultServings = plan.reduce((acc, day) => acc + day.lunch.audience.adults + day.dinner.audience.adults, 0);
-  const kidServings = plan.reduce((acc, day) => acc + day.lunch.audience.kids + day.dinner.audience.kids, 0);
+function updateStats(weekPlan) {
+  refs.lunchCount.textContent = String(weekPlan.length);
+  refs.dinnerCount.textContent = String(weekPlan.length);
+  refs.adultServings.textContent = String(
+    weekPlan.reduce((acc, day) => acc + day.lunch.audience.adults + day.dinner.audience.adults, 0)
+  );
+  refs.kidServings.textContent = String(
+    weekPlan.reduce((acc, day) => acc + day.lunch.audience.kids + day.dinner.audience.kids, 0)
+  );
+}
 
-  refs.adultServings.textContent = String(adultServings);
-  refs.kidServings.textContent = String(kidServings);
+function updateWeekNavigation() {
+  const week = getVisibleWeek();
+  if (!week) return;
+
+  refs.currentWeekLabel.textContent = `Semana ${week.index}: ${toShortDate(week.days[0].date)} - ${toShortDate(
+    week.days[week.days.length - 1].date
+  )}`;
+  refs.prevWeekBtn.disabled = currentWeekIndex === 0;
+  refs.nextWeekBtn.disabled = currentWeekIndex === activeMonthContext.weeks.length - 1;
 }
 
 function openRecipeDialog(dayText, meal) {
-  const { recipe, audience } = meal;
-  const { prep, service, q } = makeQuantities(recipe, audience);
-
+  const { prep, service, q } = makeQuantities(meal.recipe, meal.audience);
   refs.dialogMealTag.textContent = `${dayText} · ${meal.title}`;
-  refs.dialogTitle.textContent = recipe.title;
-  refs.dialogMeta.textContent = `Proteina principal: ${PROTEIN_LABEL[recipe.protein]} · Tiempo: ${recipe.time} · Nivel: ${recipe.level}`;
-
+  refs.dialogTitle.textContent = meal.recipe.title;
+  refs.dialogMeta.textContent = `Proteina principal: ${PROTEIN_LABEL[meal.recipe.protein]} · Tiempo: ${meal.recipe.time} · Nivel: ${meal.recipe.level}`;
   refs.prepList.innerHTML = prep.map((item) => `<li>${item}</li>`).join("");
   refs.serviceList.innerHTML = service.map((item) => `<li>${item}</li>`).join("");
-  refs.stepsList.innerHTML = recipe.steps(q).map((step) => `<li>${step}</li>`).join("");
-
+  refs.stepsList.innerHTML = meal.recipe.steps(q).map((step) => `<li>${step}</li>`).join("");
   refs.dialog.showModal();
 }
 
-function renderPlan(plan) {
+function renderPlan() {
+  const weekPlan = getVisibleWeekPlan();
   refs.calendar.innerHTML = "";
 
-  plan.forEach((dayInfo) => {
+  weekPlan.forEach((dayInfo) => {
     const dayCard = document.createElement("article");
     dayCard.className = "day-card";
 
@@ -528,7 +539,7 @@ function renderPlan(plan) {
 
     const dayType = document.createElement("p");
     dayType.className = "day-type";
-    dayType.textContent = dayInfo.workday ? "Dia laborable" : "Dia festivo";
+    dayType.textContent = dayInfo.workday ? "Dia laborable" : "Fin de semana";
 
     dayCard.append(dayTitle, dayType);
 
@@ -566,98 +577,98 @@ function renderPlan(plan) {
     refs.calendar.appendChild(dayCard);
   });
 
-  updateStats(plan);
+  updateStats(weekPlan);
 }
 
-function renderWeeklyShopping(plan) {
+function renderShopping() {
+  const week = getVisibleWeek();
+  const weekPlan = getVisibleWeekPlan();
   refs.shoppingWeeks.innerHTML = "";
+  if (!week) return;
 
-  const weekAgg = new Map();
+  const card = document.createElement("article");
+  card.className = "shopping-card";
 
-  activeMonthContext.weeks.forEach((week) => {
-    weekAgg.set(week.key, {
-      week,
-      ingredients: new Map()
-    });
+  const title = document.createElement("h3");
+  title.textContent = `Semana ${week.index}: ${toShortDate(week.days[0].date)} - ${toShortDate(week.days[week.days.length - 1].date)}`;
+
+  const selectedCount = week.days.filter((day) => shoppingSelectionState[week.key]?.[day.dateKey]).length;
+  const summary = document.createElement("p");
+  summary.className = "week-status";
+  summary.textContent = `Dias incluidos en compra: ${selectedCount} de ${week.days.length}`;
+
+  const toggleWrap = document.createElement("div");
+  toggleWrap.className = "day-toggle-wrap";
+
+  week.days.forEach((dayInfo) => {
+    const isSelected = Boolean(shoppingSelectionState[week.key]?.[dayInfo.dateKey]);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = isSelected ? "day-chip selected" : "day-chip unselected";
+    btn.dataset.weekKey = week.key;
+    btn.dataset.dateKey = dayInfo.dateKey;
+    btn.textContent = `${WEEKDAY_SHORT[dayInfo.date.getDay()]} ${dayInfo.date.getDate()} · ${isSelected ? "Incluir" : "Excluir"}`;
+    toggleWrap.appendChild(btn);
   });
 
-  activeMonthContext.weeks.forEach((week) => {
-    const slot = weekAgg.get(week.key);
-    const card = document.createElement("article");
-    card.className = "shopping-card";
-
-    const title = document.createElement("h3");
-    title.textContent = `Semana ${week.index}: ${toShortDate(week.days[0].date)} - ${toShortDate(week.days[week.days.length - 1].date)}`;
-
-    const summary = document.createElement("p");
-    summary.className = "week-status";
-    const selectedCount = week.days.filter((day) => shoppingSelectionState[week.key]?.[day.dateKey]).length;
-    summary.textContent = `Dias incluidos en compra: ${selectedCount} de ${week.days.length}`;
-
-    const toggleWrap = document.createElement("div");
-    toggleWrap.className = "day-toggle-wrap";
-
-    week.days.forEach((dayInfo) => {
-      const isSelected = Boolean(shoppingSelectionState[week.key]?.[dayInfo.dateKey]);
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = isSelected ? "day-chip selected" : "day-chip unselected";
-      btn.dataset.weekKey = week.key;
-      btn.dataset.dateKey = dayInfo.dateKey;
-      btn.textContent = `${WEEKDAY_SHORT[dayInfo.date.getDay()]} ${dayInfo.date.getDate()} · ${isSelected ? "Incluir" : "Excluir"}`;
-      toggleWrap.appendChild(btn);
-    });
-
-    const list = document.createElement("ul");
-    plan
-      .filter((day) => day.weekKey === week.key && shoppingSelectionState[week.key]?.[day.dateKey])
-      .forEach((day) => {
-        [day.lunch, day.dinner].forEach((meal) => {
-          getMealIngredients(meal).forEach((item) => {
-            const key = `${item.label}__${item.unit}`;
-            const current = slot.ingredients.get(key) || {
-              label: item.label,
-              unit: item.unit,
-              total: 0
-            };
-            current.total += item.total;
-            slot.ingredients.set(key, current);
-          });
+  const ingredients = new Map();
+  weekPlan
+    .filter((day) => shoppingSelectionState[week.key]?.[day.dateKey])
+    .forEach((day) => {
+      [day.lunch, day.dinner].forEach((meal) => {
+        getMealIngredients(meal).forEach((item) => {
+          const key = `${item.label}__${item.unit}`;
+          const current = ingredients.get(key) || { label: item.label, unit: item.unit, total: 0 };
+          current.total += item.total;
+          ingredients.set(key, current);
         });
       });
-
-    const items = Array.from(slot.ingredients.values()).sort((a, b) => a.label.localeCompare(b.label, "es"));
-
-    if (items.length === 0) {
-      const empty = document.createElement("p");
-      empty.className = "week-status";
-      empty.textContent = "No hay dias seleccionados en esta semana para generar compra.";
-      card.append(title, summary, toggleWrap, empty);
-      refs.shoppingWeeks.appendChild(card);
-      return;
-    }
-
-    items.forEach((item) => {
-      const li = document.createElement("li");
-      li.textContent = `${item.label}: ${formatQty(item.total)} ${item.unit}`;
-      list.appendChild(li);
     });
 
-    card.append(title, summary, toggleWrap, list);
+  card.append(title, summary, toggleWrap);
+
+  const items = Array.from(ingredients.values()).sort((a, b) => a.label.localeCompare(b.label, "es"));
+  if (items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "week-status";
+    empty.textContent = "No hay dias seleccionados en esta semana para generar compra.";
+    card.appendChild(empty);
     refs.shoppingWeeks.appendChild(card);
+    return;
+  }
+
+  const list = document.createElement("ul");
+  items.forEach((item) => {
+    const li = document.createElement("li");
+    li.textContent = `${item.label}: ${formatQty(item.total)} ${item.unit}`;
+    list.appendChild(li);
   });
+
+  card.appendChild(list);
+  refs.shoppingWeeks.appendChild(card);
 }
 
 function renderRules() {
   refs.rulePills.innerHTML = RULES.map((rule) => `<div class="rule-pill">${rule}</div>`).join("");
 }
 
+function renderVisibleWeek() {
+  updateWeekNavigation();
+  renderPlan();
+  renderShopping();
+}
+
+function setCurrentWeekIndexFromToday() {
+  const today = new Date();
+  const todayKey = dateKey(today);
+  const idx = activeMonthContext.weeks.findIndex((week) => week.days.some((day) => day.dateKey === todayKey));
+  currentWeekIndex = idx >= 0 ? idx : 0;
+}
+
 function generateMonthPlan() {
   if (!activeMonthContext) return;
-
   activePlan = buildPlan(activeMonthContext);
-  renderPlan(activePlan);
-  renderWeeklyShopping(activePlan);
+  renderVisibleWeek();
 }
 
 function setMonthFromPicker() {
@@ -665,15 +676,27 @@ function setMonthFromPicker() {
   const [year, month] = refs.monthPicker.value.split("-").map(Number);
   activeMonthContext = getMonthContext(year, month - 1);
   shoppingSelectionState = buildDefaultShoppingSelection(activeMonthContext);
+  setCurrentWeekIndexFromToday();
 }
 
 refs.shoppingWeeks.addEventListener("click", (event) => {
   const btn = event.target.closest("button[data-week-key][data-date-key]");
   if (!btn) return;
-
   const { weekKey, dateKey: dKey } = btn.dataset;
   shoppingSelectionState[weekKey][dKey] = !shoppingSelectionState[weekKey][dKey];
-  renderWeeklyShopping(activePlan);
+  renderShopping();
+});
+
+refs.prevWeekBtn.addEventListener("click", () => {
+  if (currentWeekIndex <= 0) return;
+  currentWeekIndex -= 1;
+  renderVisibleWeek();
+});
+
+refs.nextWeekBtn.addEventListener("click", () => {
+  if (!activeMonthContext || currentWeekIndex >= activeMonthContext.weeks.length - 1) return;
+  currentWeekIndex += 1;
+  renderVisibleWeek();
 });
 
 refs.generateBtn.addEventListener("click", () => {
@@ -694,7 +717,6 @@ refs.dialog.addEventListener("click", (event) => {
     event.clientX <= rect.right &&
     event.clientY >= rect.top &&
     event.clientY <= rect.bottom;
-
   if (!inside) refs.dialog.close();
 });
 
@@ -706,7 +728,6 @@ window.addEventListener("beforeinstallprompt", (event) => {
 
 refs.installBtn.addEventListener("click", async () => {
   if (!deferredPrompt) return;
-
   deferredPrompt.prompt();
   await deferredPrompt.userChoice;
   deferredPrompt = null;

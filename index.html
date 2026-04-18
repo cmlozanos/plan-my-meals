@@ -59,17 +59,22 @@
 
       <section aria-labelledby="calendarTitle">
         <div class="section-heading">
-          <h2 id="calendarTitle">Calendario mensual</h2>
+          <h2 id="calendarTitle">Plan de la semana</h2>
           <p>Haz clic en una comida o cena para ver receta, cantidades de preparacion y cantidades de servicio.</p>
+        </div>
+        <div class="week-nav" aria-label="Navegacion semanal">
+          <button id="prevWeekBtn" type="button" class="nav-btn" aria-label="Semana anterior">&larr;</button>
+          <p id="currentWeekLabel" class="current-week-label"></p>
+          <button id="nextWeekBtn" type="button" class="nav-btn" aria-label="Semana siguiente">&rarr;</button>
         </div>
         <div id="calendar" class="calendar" role="list"></div>
       </section>
 
       <section class="shopping" aria-labelledby="shoppingTitle">
         <div class="section-heading">
-          <h2 id="shoppingTitle">Compra semanal recomendada</h2>
+          <h2 id="shoppingTitle">Compra de la semana visible</h2>
           <p>
-            En cada semana puedes marcar solo los dias que quieras incluir en tu hoja de compra.
+            Marca solo los dias que quieras incluir en la hoja de compra de esta semana.
           </p>
         </div>
         <div id="shoppingWeeks" class="shopping-grid"></div>
