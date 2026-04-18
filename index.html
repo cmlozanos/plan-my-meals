@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#124734" />
+    <meta
+      name="description"
+      content="PlanMyMeals organiza tus comidas y cenas hiper proteicas del mes para 2 adultos y 2 ninos, con cantidades y pasos faciles de seguir."
+    />
+    <title>PlanMyMeals</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-1" aria-hidden="true"></div>
+    <div class="bg-orb orb-2" aria-hidden="true"></div>
+
+    <header class="hero">
+      <p class="eyebrow">PWA Personal</p>
+      <h1>PlanMyMeals</h1>
+      <p class="hero-subtitle">
+        Planificador mensual de comidas y cenas hiper proteicas para 2 adultos y 2 ninos, con reglas claras,
+        cantidades exactas y pasos detallados para no-chefs.
+      </p>
+
+      <div class="controls" aria-label="Controles de planificacion">
+        <label for="monthPicker">Mes:</label>
+        <input id="monthPicker" type="month" />
+        <button id="generateBtn" type="button">Generar plan mensual</button>
+        <button id="installBtn" type="button" class="ghost" hidden>Instalar app</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="philosophy" aria-labelledby="philosophyTitle">
+        <h2 id="philosophyTitle">Filosofia de planificacion</h2>
+        <div class="pill-grid" id="rulePills"></div>
+      </section>
+
+      <section class="stats" aria-label="Resumen del mes">
+        <article>
+          <h3>Comidas (Lunch)</h3>
+          <p id="lunchCount">0</p>
+        </article>
+        <article>
+          <h3>Cenas</h3>
+          <p id="dinnerCount">0</p>
+        </article>
+        <article>
+          <h3>Raciones Adulto</h3>
+          <p id="adultServings">0</p>
+        </article>
+        <article>
+          <h3>Raciones Nino</h3>
+          <p id="kidServings">0</p>
+        </article>
+      </section>
+
+      <section aria-labelledby="calendarTitle">
+        <div class="section-heading">
+          <h2 id="calendarTitle">Calendario mensual</h2>
+          <p>Haz clic en una comida o cena para ver receta, cantidades de preparacion y cantidades de servicio.</p>
+        </div>
+        <div id="calendar" class="calendar" role="list"></div>
+      </section>
+    </main>
+
+    <dialog id="recipeDialog">
+      <article>
+        <button id="closeDialog" class="close-btn" type="button" aria-label="Cerrar detalle">x</button>
+        <p id="dialogMealTag" class="eyebrow"></p>
+        <h3 id="dialogTitle"></h3>
+        <p id="dialogMeta"></p>
+
+        <section>
+          <h4>Cantidades de preparacion</h4>
+          <ul id="prepList"></ul>
+        </section>
+
+        <section>
+          <h4>Cantidades de servicio</h4>
+          <ul id="serviceList"></ul>
+        </section>
+
+        <section>
+          <h4>Procedimiento paso a paso (no-chef friendly)</h4>
+          <ol id="stepsList"></ol>
+        </section>
+      </article>
+    </dialog>
+
+    <noscript>Necesitas activar JavaScript para usar PlanMyMeals.</noscript>
+    <script src="app.js" defer></script>
+  </body>
+</html>

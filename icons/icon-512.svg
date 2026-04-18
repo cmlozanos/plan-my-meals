@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="PlanMyMeals icon">
+  <defs>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#124734" />
+      <stop offset="100%" stop-color="#c65a26" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#g2)" />
+  <circle cx="256" cy="256" r="150" fill="#fff6e0" opacity="0.95" />
+  <path d="M165 281h182" stroke="#124734" stroke-width="20" stroke-linecap="round" />
+  <path d="M220 190v180" stroke="#124734" stroke-width="20" stroke-linecap="round" />
+  <path d="M292 190v180" stroke="#124734" stroke-width="20" stroke-linecap="round" />
+  <text x="256" y="439" text-anchor="middle" font-size="52" font-family="Arial, sans-serif" fill="#fff6e0">PMM</text>
+</svg>
