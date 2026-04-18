@@ -176,7 +176,6 @@ main {
 
 .philosophy,
 .stats,
-.week-config,
 .shopping,
 section[aria-labelledby="calendarTitle"] {
   background: var(--surface);
@@ -187,7 +186,6 @@ section[aria-labelledby="calendarTitle"] {
 }
 
 .philosophy,
-.week-config,
 .shopping,
 section[aria-labelledby="calendarTitle"] {
   padding: 0.85rem;
@@ -247,17 +245,6 @@ section[aria-labelledby="calendarTitle"] {
   font-size: 0.9rem;
 }
 
-.warning {
-  margin: 0 0 0.65rem;
-  padding: 0.58rem 0.6rem;
-  border: 1px solid rgba(198, 90, 38, 0.4);
-  border-radius: 0.65rem;
-  color: #7b3211;
-  background: rgba(253, 232, 222, 0.92);
-  font-size: 0.86rem;
-}
-
-.week-grid,
 .shopping-grid,
 .calendar {
   display: grid;
@@ -265,7 +252,6 @@ section[aria-labelledby="calendarTitle"] {
   gap: 0.62rem;
 }
 
-.week-card,
 .shopping-card,
 .day-card {
   border: 1px solid rgba(18, 71, 52, 0.21);
@@ -299,12 +285,12 @@ section[aria-labelledby="calendarTitle"] {
   padding: 0.52rem 0.58rem;
 }
 
-.day-chip.labor {
+.day-chip.selected {
   background: #ecf6ef;
   color: #0e5732;
 }
 
-.day-chip.fest {
+.day-chip.unselected {
   background: #fff0e7;
   color: #7a3d1f;
 }
@@ -438,7 +424,6 @@ li {
   }
 
   .pill-grid,
-  .week-grid,
   .shopping-grid,
   .calendar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -459,7 +444,6 @@ li {
   }
 
   .pill-grid,
-  .week-grid,
   .shopping-grid,
   .calendar {
     grid-template-columns: repeat(3, minmax(0, 1fr));

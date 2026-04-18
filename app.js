@@ -4,8 +4,8 @@ const RULES = [
   "Comidas y cenas hiper proteicas para organizacion mensual.",
   "La cena nunca usa ni cerdo ni ternera (solo pollo o atun).",
   "La cena evita ingredientes mas pesados de digerir, como garbanzos por la noche.",
-  "Cada semana puede configurarse con 5 dias laborables y 2 festivos.",
-  "Laborables: los ninos solo cenan en casa.",
+  "De lunes a viernes, los ninos solo cenan en casa.",
+  "Sabados y domingos, comen y cenan en casa los 4.",
   "Hogar de 2 adultos + 2 ninos.",
   "Proteinas base de la app: pollo, ternera, cerdo y atun enlatado.",
   "No mezclar tipos de proteina en una misma receta.",
@@ -286,8 +286,6 @@ const refs = {
   generateBtn: document.querySelector("#generateBtn"),
   installBtn: document.querySelector("#installBtn"),
   rulePills: document.querySelector("#rulePills"),
-  weekConfig: document.querySelector("#weekConfig"),
-  weekConfigWarning: document.querySelector("#weekConfigWarning"),
   calendar: document.querySelector("#calendar"),
   shoppingWeeks: document.querySelector("#shoppingWeeks"),
   lunchCount: document.querySelector("#lunchCount"),
@@ -307,7 +305,7 @@ const refs = {
 let deferredPrompt;
 let activePlan = [];
 let activeMonthContext = null;
-let weekConfigState = {};
+let shoppingSelectionState = {};
 
 function formatMonthISO(date) {
   const y = date.getFullYear();
@@ -385,81 +383,15 @@ function getMonthContext(year, monthIndex) {
   return { year, monthIndex, days, weeks };
 }
 
-function buildDefaultWeekConfig(monthContext) {
+function buildDefaultShoppingSelection(monthContext) {
   const config = {};
   monthContext.weeks.forEach((week) => {
     config[week.key] = {};
     week.days.forEach((dayInfo) => {
-      config[week.key][dayInfo.dateKey] = isDefaultWorkday(dayInfo.date);
+      config[week.key][dayInfo.dateKey] = true;
     });
   });
   return config;
-}
-
-function countWeekTypes(week) {
-  const state = weekConfigState[week.key] || {};
-  let workdays = 0;
-  let festive = 0;
-
-  week.days.forEach((dayInfo) => {
-    if (state[dayInfo.dateKey]) workdays += 1;
-    else festive += 1;
-  });
-
-  return { workdays, festive };
-}
-
-function renderWeekConfig() {
-  refs.weekConfig.innerHTML = "";
-
-  activeMonthContext.weeks.forEach((week) => {
-    const card = document.createElement("article");
-    card.className = "week-card";
-
-    const title = document.createElement("h3");
-    title.textContent = `Semana ${week.index}: ${toShortDate(week.days[0].date)} - ${toShortDate(week.days[week.days.length - 1].date)}`;
-
-    const counts = countWeekTypes(week);
-    const status = document.createElement("p");
-    status.className = "week-status";
-    status.textContent = `Laborables: ${counts.workdays} · Festivos: ${counts.festive}`;
-
-    const toggleWrap = document.createElement("div");
-    toggleWrap.className = "day-toggle-wrap";
-
-    week.days.forEach((dayInfo) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = weekConfigState[week.key][dayInfo.dateKey] ? "day-chip labor" : "day-chip fest";
-      btn.dataset.weekKey = week.key;
-      btn.dataset.dateKey = dayInfo.dateKey;
-      btn.textContent = `${WEEKDAY_SHORT[dayInfo.date.getDay()]} ${dayInfo.date.getDate()} · ${
-        weekConfigState[week.key][dayInfo.dateKey] ? "Labor" : "Fest"
-      }`;
-      toggleWrap.appendChild(btn);
-    });
-
-    card.append(title, status, toggleWrap);
-    refs.weekConfig.appendChild(card);
-  });
-}
-
-function validateWeekSelection() {
-  const invalidWeeks = activeMonthContext.weeks.filter((week) => {
-    if (week.days.length !== 7) return false;
-    const counts = countWeekTypes(week);
-    return !(counts.workdays === 5 && counts.festive === 2);
-  });
-
-  if (invalidWeeks.length > 0) {
-    refs.weekConfigWarning.hidden = false;
-    refs.weekConfigWarning.textContent = "Hay semanas completas que no tienen 5 laborables y 2 festivos. Ajustalas para generar el plan.";
-    return false;
-  }
-
-  refs.weekConfigWarning.hidden = true;
-  refs.weekConfigWarning.textContent = "";
-  return true;
 }
 
 function pickRecipe(recipesByProtein, protein, mealTag, state) {
@@ -469,10 +401,6 @@ function pickRecipe(recipesByProtein, protein, mealTag, state) {
   const recipe = candidates[idx % candidates.length];
   state[key] = idx + 1;
   return recipe;
-}
-
-function getWorkdayForDate(dayInfo) {
-  return Boolean(weekConfigState[dayInfo.weekKey]?.[dayInfo.dateKey]);
 }
 
 function buildPlan(monthContext) {
@@ -492,7 +420,7 @@ function buildPlan(monthContext) {
       dinnerProtein = DINNER_PROTEIN_ROTATION[(dayIndex + 1) % DINNER_PROTEIN_ROTATION.length];
     }
 
-    const workday = getWorkdayForDate(dayInfo);
+    const workday = isDefaultWorkday(dayInfo.date);
     const lunchAudience = workday
       ? { adults: FAMILY.adults, kids: 0 }
       : { adults: FAMILY.adults, kids: FAMILY.kids };
@@ -653,22 +581,6 @@ function renderWeeklyShopping(plan) {
     });
   });
 
-  plan.forEach((day) => {
-    const slot = weekAgg.get(day.weekKey);
-    [day.lunch, day.dinner].forEach((meal) => {
-      getMealIngredients(meal).forEach((item) => {
-        const key = `${item.label}__${item.unit}`;
-        const current = slot.ingredients.get(key) || {
-          label: item.label,
-          unit: item.unit,
-          total: 0
-        };
-        current.total += item.total;
-        slot.ingredients.set(key, current);
-      });
-    });
-  });
-
   activeMonthContext.weeks.forEach((week) => {
     const slot = weekAgg.get(week.key);
     const card = document.createElement("article");
@@ -677,8 +589,53 @@ function renderWeeklyShopping(plan) {
     const title = document.createElement("h3");
     title.textContent = `Semana ${week.index}: ${toShortDate(week.days[0].date)} - ${toShortDate(week.days[week.days.length - 1].date)}`;
 
+    const summary = document.createElement("p");
+    summary.className = "week-status";
+    const selectedCount = week.days.filter((day) => shoppingSelectionState[week.key]?.[day.dateKey]).length;
+    summary.textContent = `Dias incluidos en compra: ${selectedCount} de ${week.days.length}`;
+
+    const toggleWrap = document.createElement("div");
+    toggleWrap.className = "day-toggle-wrap";
+
+    week.days.forEach((dayInfo) => {
+      const isSelected = Boolean(shoppingSelectionState[week.key]?.[dayInfo.dateKey]);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = isSelected ? "day-chip selected" : "day-chip unselected";
+      btn.dataset.weekKey = week.key;
+      btn.dataset.dateKey = dayInfo.dateKey;
+      btn.textContent = `${WEEKDAY_SHORT[dayInfo.date.getDay()]} ${dayInfo.date.getDate()} · ${isSelected ? "Incluir" : "Excluir"}`;
+      toggleWrap.appendChild(btn);
+    });
+
     const list = document.createElement("ul");
+    plan
+      .filter((day) => day.weekKey === week.key && shoppingSelectionState[week.key]?.[day.dateKey])
+      .forEach((day) => {
+        [day.lunch, day.dinner].forEach((meal) => {
+          getMealIngredients(meal).forEach((item) => {
+            const key = `${item.label}__${item.unit}`;
+            const current = slot.ingredients.get(key) || {
+              label: item.label,
+              unit: item.unit,
+              total: 0
+            };
+            current.total += item.total;
+            slot.ingredients.set(key, current);
+          });
+        });
+      });
+
     const items = Array.from(slot.ingredients.values()).sort((a, b) => a.label.localeCompare(b.label, "es"));
+
+    if (items.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "week-status";
+      empty.textContent = "No hay dias seleccionados en esta semana para generar compra.";
+      card.append(title, summary, toggleWrap, empty);
+      refs.shoppingWeeks.appendChild(card);
+      return;
+    }
 
     items.forEach((item) => {
       const li = document.createElement("li");
@@ -686,7 +643,7 @@ function renderWeeklyShopping(plan) {
       list.appendChild(li);
     });
 
-    card.append(title, list);
+    card.append(title, summary, toggleWrap, list);
     refs.shoppingWeeks.appendChild(card);
   });
 }
@@ -697,7 +654,6 @@ function renderRules() {
 
 function generateMonthPlan() {
   if (!activeMonthContext) return;
-  if (!validateWeekSelection()) return;
 
   activePlan = buildPlan(activeMonthContext);
   renderPlan(activePlan);
@@ -708,19 +664,16 @@ function setMonthFromPicker() {
   if (!refs.monthPicker.value) return;
   const [year, month] = refs.monthPicker.value.split("-").map(Number);
   activeMonthContext = getMonthContext(year, month - 1);
-  weekConfigState = buildDefaultWeekConfig(activeMonthContext);
-  renderWeekConfig();
+  shoppingSelectionState = buildDefaultShoppingSelection(activeMonthContext);
 }
 
-refs.weekConfig.addEventListener("click", (event) => {
+refs.shoppingWeeks.addEventListener("click", (event) => {
   const btn = event.target.closest("button[data-week-key][data-date-key]");
   if (!btn) return;
 
   const { weekKey, dateKey: dKey } = btn.dataset;
-  weekConfigState[weekKey][dKey] = !weekConfigState[weekKey][dKey];
-
-  renderWeekConfig();
-  generateMonthPlan();
+  shoppingSelectionState[weekKey][dKey] = !shoppingSelectionState[weekKey][dKey];
+  renderWeeklyShopping(activePlan);
 });
 
 refs.generateBtn.addEventListener("click", () => {
